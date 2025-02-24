@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cargar Documento</title>
+    <link rel="stylesheet" href="static/vector_updater_style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Cargar documento al vectorstore</h1>
+      <div id="passwordContainer" class="passwordContainer">
+        <form action="" onsubmit="checkPassword(event)">
+          <input
+            type="password"
+            id="passwordInput"
+            placeholder="Ingrese su contraseña"
+          />
+          <button type="submit">Ingresar</button>
+        </form>
+      </div>
+      <div
+        id="fileUploadContainer"
+        class="fileUploadContainer"
+        style="display: none"
+      >
+        <form
+          action="http://192.168.1.5:12500/upload"
+          enctype="multipart/form-data"
+          method="post"
+        >
+          <input name="files" type="file" multiple />
+          <input type="submit" value="Subir Archivo" />
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function checkPassword(event) {
+        event.preventDefault();
+        var passwordInput = document.getElementById("passwordInput");
+        var password = passwordInput.value;
+        const hashedPass = CryptoJS.SHA256(password);
+
+        if (
+          hashedPass.toString(CryptoJS.enc.Hex) ===
+          "80ade032ec19a8889fa85e455f03af767ff7ae512b02b7a5f67af32e5c361eff"
+        ) {
+          document.getElementById("passwordContainer").style.display = "none";
+          document.getElementById("fileUploadContainer").style.display =
+            "block";
+        } else {
+          alert("Contraseña incorrecta. Por favor, inténtalo de nuevo.");
+        }
+      }
+    </script>
+  </body>
+</html>

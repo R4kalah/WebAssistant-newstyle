@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Asistente Citylab</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts Link For Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0" />
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <style>
+      
+      .chatbot{
+        display: block;
+      }
+
+      .chat-input img{
+        width: 50%;
+        left: 25%;
+        top: 30%;
+        position: center;
+        cursor: pointer;
+        
+      }
+
+      .chat-input img{
+
+        width: 10%;
+        left: 45%;
+        top: 10%;
+    
+      }
+      .formita{
+        
+        position: absolute;
+        width: 30%;
+        right: 35%;
+        top: 40%;
+      }
+    </style>
+  </head>
+  
+  <body>
+
+    </div>
+    <div class="chatbot" id="mainContainer">
+      <header>
+        <h2>Asistente virtual CityLab Biobio</h2>
+        <span id="menuIcon" class="material-icons">&vellip;</span>
+      </header>
+      
+      <ul class="chatbox" id="BOX">
+        <li class="chat respuestas">
+          
+          <span class="material-symbols-outlined">smart_toy</span>
+          <p>¡Hola!, ¿en que puedo ayudarte?</p>
+        </li>
+      </ul>
+      
+      <div class="chat-input">
+        <form action="" onsubmit="onSubmit(event)">
+          <input type="text" id="messageText" placeholder="Pregunte al asistente..." autocomplete="off">
+          <span id="send-btn" class="material-symbols-rounded">send</span>
+          <img id="micButton" src="static/microphone.svg" alt="" >
+        </form>
+      </div>
+  
+
+    <script>
+      let isRecording = false;
+      let chunks = [];
+      let mediaRecorder;
+  
+      const micButton = document.getElementById("micButton");
+      const messageInput = document.getElementById("messageText");
+  
+      micButton.addEventListener('mousedown', startRecording);
+      micButton.addEventListener('mouseup', stopRecording);
+  
+      async function startRecording() {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e => chunks.push(e.data);
+          mediaRecorder.onstop = saveAudio;
+          mediaRecorder.start();
+  
+          isRecording = true;
+          updatePlaceholder("🔴 Grabando..."); // Cambiar placeholder a "Grabando"
+      }
+  
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop(); 
+            mediaRecorder.stream.getTracks().forEach(track => track.stop()); // Cerrar el stream
+            isRecording = false;
+            updatePlaceholder("Procesando...");
+        }
+      }
+  
+      function saveAudio() {
+          const blob = new Blob(chunks, { type: 'audio/wav' });
+          chunks = []; // Limpiar los datos para la siguiente grabación
+          const formData = new FormData();
+          const date = new Date();
+          const formattedDate = `${date.getDate().toString().padStart(2, '0')}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getFullYear()}-${date.getHours().toString().padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}`;
+          formData.append("file", blob, `record-${formattedDate}.wav`);
+  
+          
+
+
+         fetch('http://127.0.0.1:12500/command/', {
+             method: 'POST',
+             body: formData
+          })
+         .then(response => response.json())
+         .then(data => {
+           // Agregar mensaje del usuario con la transcripción
+           const userMessage = data.transcripcion;
+           chatbox.appendChild(createChatLi(userMessage, "preguntas"));
+        
+           // Agregar respuesta del asistente
+           chatbox.appendChild(createChatLi(data.respuesta, "respuestas"));
+        
+           scrollBottom();
+          })
+          .catch(error => console.error('Error:', error))
+          .finally(() => {
+            updatePlaceholder("Pregunte al asistente...");
+           });
+      }
+
+      function updatePlaceholder(text) {
+         messageInput.placeholder = text;
+        }
+  
+          
+      
+    </script>
+
+  
+  
+    <script>
+    var socket = new WebSocket("ws://localhost:12500/wsadmin"); 
+              // cambiar IP a la del pc grande
+            var respuesta,messageHolder;
+            
+
+            socket.onopen = function(e) {
+                console.log("[open] Conexión establecida");
+                
+            };
+        
+            socket.onmessage = function(event) {
+                respuesta = event.data;
+                ISRESPONDING= false;
+             
+                chatbox.appendChild(createChatLi(respuesta,"respuestas"))
+                // console.log(event)
+                console.log(respuesta);
+                scrollBottom();
+                // speak(respuesta)
+                
+                
+            };
+            
+
+        
+            socket.onclose = function(event) {
+                if (event.wasClean) {
+                    console.log(`[close] Conexión cerrada limpiamente, código=${event.code} motivo=${event.reason}`);
+                } else {
+                    // Ejemplo: El servidor cierra la conexión o se pierde la conexión
+                    console.log(`[close] Conexión cerrada abruptamente`);
+                }
+            };
+        
+            socket.onerror = function(error) {
+                console.log(`[error loco] ${error.message}`);
+            };
+
+            var input = document.getElementById("messageText");
+var botonsend= document.getElementById("send-btn");
+const chatbox = document.querySelector(".chatbox");
+const chatInput = document.querySelector(".chat-input input");
+var ISRESPONDING= false;
+
+const createChatLi = (message, className) => {
+    // Create a chat <li> element with passed message and className
+    const chatLi = document.createElement("li");
+    chatLi.classList.add("chat", `${className}`);
+    let chatContent = className === "preguntas" ? `<p></p>` : `<span class="material-symbols-outlined">smart_toy</span><p></p>`;
+    chatLi.innerHTML = chatContent;
+    chatLi.querySelector("p").textContent = message;
+    return chatLi; // return chat <li> element
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const questions = document.querySelectorAll(".faq-question");
+
+    questions.forEach(question => {
+        question.addEventListener("click", function(event) {
+            event.preventDefault();
+            const answer = this.nextElementSibling;
+           
+
+            if (answer.style.display === "block") {
+                answer.style.display = "none";
+                answer.classList.remove = "appear";
+                this.classList.remove("active");
+            } else {
+                // Hide all other answers
+                
+                // Show the clicked answer
+                answer.style.display="block";
+                answer.classList.add("appear");
+                
+                this.classList.add("active");
+            }
+        });
+    });
+});
+
+// TEXT TO SPEECH
+function speak(text) {
+    // Get the text from the textarea
+
+    // Create an instance of SpeechSynthesisUtterance
+    var utterance = new SpeechSynthesisUtterance(text);
+
+    // Set the language and voice properties
+    utterance.lang = 'es-ES';  // Language and accent
+    utterance.pitch = 1;       // Pitch (default is 1)
+    utterance.rate = 1;        // Rate (default is 1)
+    utterance.volume = 1;      // Volume (default is 1)
+
+    // Use the speechSynthesis API to speak the text
+    window.speechSynthesis.speak(utterance);
+}
+function onSubmit(event) {
+    event.preventDefault();
+    if (input.value !="" & !ISRESPONDING){
+        socket.send(JSON.stringify(input.value));
+        ISRESPONDING= true;
+        console.log("mensaje enviado");
+        userMessage=chatInput.value;
+        
+        chatbox.appendChild(createChatLi(userMessage, "preguntas"));
+        scrollBottom();
+        input.value = "";
+        
+    }
+   
+}
+
+function scrollBottom(){
+    var container = document.getElementById('BOX');
+    container.scrollTop = container.scrollHeight;
+}
+
+botonsend.addEventListener("click",onSubmit);
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener el icono del menú y el menú desplegable
+    const menuIcon = document.getElementById('menuIcon');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const container = document.getElementById('mainContainer');
+    let TOGGLING= false;
+       container.classList.toggle('move-left');
+        dropdownMenu.classList.toggle('appear');
+  
+    // Agregar un event listener para el clic en el icono del menú
+    menuIcon.addEventListener('click', function() {
+
+      
+      // Alternar la visibilidad del menú desplegable al hacer clic en el icono
+      if (!TOGGLING) {
+        container.classList.toggle('move-left');
+        dropdownMenu.classList.toggle('appear');
+        TOGGLING=true;
+      }
+      setTimeout(() => {
+        TOGGLING=false;
+      }, 500);
+
+    });
+  
+    
+    
+  });
+  </script>
+  </body>
+</html>
